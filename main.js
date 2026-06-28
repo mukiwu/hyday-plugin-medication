@@ -184,9 +184,9 @@ const MEDP_CSS = `
 .medp-table tr.today td { background: var(--mp-accent-soft); }
 .medp-table tr.today:hover td { background: var(--mp-accent-soft); }
 .medp-table tr.today td.d { color: var(--mp-accent); font-weight: 700; box-shadow: inset 3px 0 0 var(--mp-accent); }
-.medp-chk { width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--border, #d1d5db); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; outline: none; transition: .13s; vertical-align: middle; }
+.medp-chk { width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid var(--border, #d1d5db); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; outline: none; transition: .13s; vertical-align: middle; }
 .medp-chk:hover { border-color: var(--mp-accent); }
-.medp-chk::after { content: ''; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) scale(0); transition: transform .13s; margin-top: -2px; }
+.medp-chk::after { content: ''; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) scale(0); transition: transform .13s; margin-top: -1px; }
 .medp-chk[aria-checked="true"] { background: var(--mp-accent); border-color: var(--mp-accent); }
 .medp-chk[aria-checked="true"]::after { transform: rotate(45deg) scale(1); }
 .medp-day { display: flex; align-items: center; gap: 9px; padding: 4px 0; }
@@ -303,6 +303,9 @@ class MedicationPlugin {
     this._view = this.app.ui.registerView({
       id: 'medication-table',
       title: '用藥記錄',
+      // 'content' 讓畫面只佔內容區、保留 app 側邊欄（需要 host 支援此選項；
+      // 舊版 host 會忽略此欄位、退回全螢幕，不會壞）。
+      placement: 'content',
       mount: (elm) => this._mountView(elm),
     });
     this._handles.push(this._view);
