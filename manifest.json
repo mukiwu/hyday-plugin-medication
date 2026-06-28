@@ -1,7 +1,7 @@
 {
   "id": "medication",
   "name": "用藥記錄",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "main": "main.js",
   "minHydayVersion": "0.6.0",
   "description": "記錄多種用藥：每種藥各設天數、時段（早/中/晚/睡前）與各時段劑量，每天打勾記錄是否吃藥。",
@@ -11,10 +11,12 @@
   "tags": ["health", "tracking"],
   "i18n": {
     "default": "zh-TW",
-    "supported": ["zh-TW"],
-    "names": { "zh-TW": "用藥記錄" },
+    "supported": ["zh-TW", "en", "zh-CN"],
+    "names": { "zh-TW": "用藥記錄", "en": "Medication", "zh-CN": "用药记录" },
     "descriptions": {
-      "zh-TW": "記錄多種用藥：每種藥各設天數、時段（早/中/晚/睡前）與各時段劑量，每天打勾記錄是否吃藥。"
+      "zh-TW": "記錄多種用藥：每種藥各設天數、時段（早/中/晚/睡前）與各時段劑量，每天打勾記錄是否吃藥。",
+      "en": "Track multiple medications: set the duration, time slots (morning/noon/evening/bedtime) and per-slot doses, then check off each dose every day.",
+      "zh-CN": "记录多种用药：每种药各设天数、时段（早/中/晚/睡前）与各时段剂量，每天打勾记录是否吃药。"
     }
   }
 }
