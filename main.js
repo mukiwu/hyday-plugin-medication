@@ -116,69 +116,151 @@ function migrateData(stored, makeId) {
   return { medications: [], taken: {} };
 }
 
+/* ─────────────── 樣式（注入一次，scoped 在 .medp 底下，全用 Hyday theme token） ─────────────── */
+
+const STYLE_ID = 'medp-styles';
+const MEDP_CSS = `
+.medp {
+  --mp-accent: var(--hyday-teal, #0e7c6b);
+  --mp-fg: var(--foreground, #1f2937);
+  --mp-soft: var(--foreground-soft, #6b7280);
+  --mp-muted: var(--foreground-muted, #9ca3af);
+  --mp-line: var(--border-subtle, #e5e7eb);
+  --mp-card: var(--background, #ffffff);
+  --mp-sunken: color-mix(in srgb, var(--foreground, #111) 5%, transparent);
+  --mp-accent-soft: color-mix(in srgb, var(--hyday-teal, #0e7c6b) 13%, transparent);
+  --mp-ok: var(--success-text, #0f8a5f);
+  --mp-ok-soft: color-mix(in srgb, var(--success-text, #0f8a5f) 14%, transparent);
+  --mp-warn: var(--warning-text, #9a6b16);
+  --mp-warn-soft: color-mix(in srgb, var(--warning-text, #9a6b16) 13%, transparent);
+  --mp-danger: var(--danger-text, #b3261e);
+  color: var(--mp-fg);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 28px;
+}
+.medp.panel { padding: 14px; }
+.medp * { box-sizing: border-box; }
+.medp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.medp.panel .medp-head { margin-bottom: 14px; }
+.medp-title { font-size: 20px; font-weight: 700; letter-spacing: .01em; }
+.medp.panel .medp-title { font-size: 14px; }
+.medp-title small { display: block; font-size: 13px; font-weight: 400; color: var(--mp-muted); margin-top: 3px; letter-spacing: 0; }
+.medp.panel .medp-title small { font-size: 12px; margin-top: 1px; }
+.medp-add { font-size: 13px; font-weight: 600; color: #fff; background: var(--mp-accent); border: none; padding: 9px 15px; border-radius: 10px; cursor: pointer; outline: none; transition: filter .15s; box-shadow: 0 4px 12px -5px color-mix(in srgb, var(--hyday-teal, #0e7c6b) 70%, transparent); }
+.medp.panel .medp-add { padding: 5px 11px; }
+.medp-add:hover { filter: brightness(1.07); }
+.medp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; align-items: start; }
+.medp.panel .medp-grid { grid-template-columns: 1fr; gap: 14px; }
+.medp-card { background: var(--mp-card); border: 1px solid var(--mp-line); border-radius: 14px; padding: 18px 18px 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.medp.panel .medp-card { padding: 14px 14px 6px; }
+.medp-chead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.medp-name { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.medp.panel .medp-name { font-size: 14px; }
+.medp-pill { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.medp-pill.live { background: var(--mp-ok-soft); color: var(--mp-ok); }
+.medp-pill.soon { background: var(--mp-accent-soft); color: var(--mp-accent); }
+.medp-pill.done { background: var(--mp-sunken); color: var(--mp-muted); }
+.medp-meta { font-size: 13px; color: var(--mp-soft); margin-top: 4px; }
+.medp-acts { display: flex; gap: 6px; flex: 0 0 auto; }
+.medp-btn { font-size: 13px; color: var(--mp-soft); background: transparent; border: 1px solid var(--mp-line); padding: 4px 11px; border-radius: 8px; cursor: pointer; outline: none; transition: .15s; }
+.medp-btn:hover { border-color: var(--mp-muted); color: var(--mp-fg); }
+.medp-btn.armed { color: var(--mp-danger); border-color: color-mix(in srgb, var(--danger-text, #b3261e) 45%, transparent); }
+.medp-note { background: var(--mp-warn-soft); color: var(--mp-warn); border-radius: 10px; padding: 9px 12px; margin: 13px 0 2px; line-height: 1.55; white-space: pre-wrap; }
+.medp.panel .medp-note { margin: 6px 0; }
+.medp-prog { margin: 14px 0 2px; }
+.medp-prog-top { display: flex; justify-content: space-between; color: var(--mp-soft); margin-bottom: 6px; }
+.medp-prog-top b { color: var(--mp-accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.medp-bar { height: 7px; border-radius: 99px; background: var(--mp-sunken); overflow: hidden; }
+.medp-bar > i { display: block; height: 100%; border-radius: 99px; background: var(--mp-accent); transition: width .3s ease; }
+.medp-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+.medp-table th { font-size: 12px; font-weight: 600; color: var(--mp-muted); text-align: center; padding: 8px 6px; border-bottom: 1px solid var(--mp-line); }
+.medp-table th.d { text-align: left; }
+.medp-table th .dose { display: block; font-size: 11px; font-weight: 500; color: var(--mp-muted); margin-top: 1px; }
+.medp-table td { padding: 9px 6px; text-align: center; border-bottom: 1px solid var(--mp-line); }
+.medp-table tr:last-child td { border-bottom: none; }
+.medp-table td.d { text-align: left; font-size: 13px; color: var(--mp-soft); white-space: nowrap; }
+.medp-table tbody tr:hover td { background: var(--mp-sunken); }
+.medp-table tr.today td { background: var(--mp-accent-soft); }
+.medp-table tr.today:hover td { background: var(--mp-accent-soft); }
+.medp-table tr.today td.d { color: var(--mp-accent); font-weight: 700; box-shadow: inset 3px 0 0 var(--mp-accent); }
+.medp-chk { width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--border, #d1d5db); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; outline: none; transition: .13s; vertical-align: middle; }
+.medp-chk:hover { border-color: var(--mp-accent); }
+.medp-chk::after { content: ''; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) scale(0); transition: transform .13s; margin-top: -2px; }
+.medp-chk[aria-checked="true"] { background: var(--mp-accent); border-color: var(--mp-accent); }
+.medp-chk[aria-checked="true"]::after { transform: rotate(45deg) scale(1); }
+.medp-day { display: flex; align-items: center; gap: 9px; padding: 4px 0; }
+.medp-day .lbl { width: 30px; font-size: 14px; }
+.medp-day .dose { flex: 1; font-size: 13px; color: var(--mp-fg); }
+.medp-day .dose.taken { text-decoration: line-through; color: var(--mp-muted); }
+.medp-footer { margin-top: 10px; }
+.medp-manage { width: 100%; font-size: 13px; color: var(--mp-soft); background: transparent; border: 1px solid var(--mp-line); padding: 7px; border-radius: 9px; cursor: pointer; outline: none; transition: .15s; }
+.medp-manage:hover { border-color: var(--mp-muted); color: var(--mp-fg); }
+.medp-empty { text-align: center; color: var(--mp-muted); font-size: 14px; padding: 64px 0; }
+.medp-form { display: flex; flex-direction: column; gap: 13px; max-width: 440px; margin: 0 auto; }
+.medp.panel .medp-form { max-width: none; }
+.medp-form h2 { font-size: 15px; font-weight: 700; }
+.medp-field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--mp-soft); }
+.medp-sublabel { font-size: 13px; color: var(--mp-muted); margin-top: 2px; }
+.medp-input, .medp-textarea { width: 100%; padding: 7px 10px; font-size: 13px; border: 1px solid var(--border, #d1d5db); border-radius: 8px; background: var(--background, #fff); color: var(--mp-fg); outline: none; font-family: inherit; transition: border-color .15s; }
+.medp-input:focus, .medp-textarea:focus { border-color: var(--mp-accent); }
+.medp-input.off { opacity: .45; }
+.medp-textarea { resize: vertical; line-height: 1.5; min-height: 60px; }
+.medp-slots { display: flex; flex-direction: column; gap: 8px; }
+.medp-slot { display: flex; align-items: center; gap: 9px; }
+.medp-slot .lbl { width: 30px; font-size: 13px; }
+.medp-slot .medp-input { flex: 1; }
+.medp-form-btns { display: flex; gap: 8px; margin-top: 4px; }
+.medp-save { flex: 1; font-size: 13px; font-weight: 600; color: #fff; background: var(--mp-accent); border: none; padding: 9px; border-radius: 9px; cursor: pointer; outline: none; }
+.medp-save:hover { filter: brightness(1.07); }
+.medp-cancel { font-size: 13px; color: var(--mp-soft); background: transparent; border: 1px solid var(--mp-line); padding: 9px 14px; border-radius: 9px; cursor: pointer; outline: none; }
+`;
+
+function injectStyles() {
+  if (typeof document === 'undefined' || document.getElementById(STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = MEDP_CSS;
+  document.head.appendChild(style);
+}
+
+function removeStyles() {
+  const existing = typeof document !== 'undefined' && document.getElementById(STYLE_ID);
+  if (existing) existing.remove();
+}
+
 /* ─────────────── DOM 小工具 ─────────────── */
 
-function h(tag, styles, text) {
-  const el = document.createElement(tag);
-  if (styles) Object.assign(el.style, styles);
-  if (text != null) el.textContent = text;
-  return el;
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
 }
 
 function makeInput(type, value) {
-  const inp = document.createElement('input');
+  const inp = el('input', 'medp-input');
   inp.type = type;
   if (value != null) inp.value = value;
-  Object.assign(inp.style, {
-    padding: '5px 8px',
-    fontSize: '13px',
-    borderRadius: '6px',
-    border: '1px solid var(--border, #d1d5db)',
-    background: 'var(--background, white)',
-    color: 'var(--foreground, #111827)',
-    outline: 'none',
-    boxSizing: 'border-box',
-  });
   return inp;
 }
 
+// 自訂打勾框：圓角填色 + CSS 畫的勾。role=checkbox、可鍵盤操作。
 function makeCheckbox(checked, onChange) {
-  const cb = document.createElement('input');
-  cb.type = 'checkbox';
-  cb.checked = checked;
-  Object.assign(cb.style, {
-    width: '16px',
-    height: '16px',
-    cursor: 'pointer',
-    outline: 'none',
-    accentColor: 'var(--foreground, #111827)',
-    flex: '0 0 auto',
+  const cb = el('span', 'medp-chk');
+  cb.setAttribute('role', 'checkbox');
+  cb.setAttribute('tabindex', '0');
+  cb.setAttribute('aria-checked', checked ? 'true' : 'false');
+  const toggle = () => {
+    const next = cb.getAttribute('aria-checked') !== 'true';
+    cb.setAttribute('aria-checked', next ? 'true' : 'false');
+    onChange(next);
+  };
+  cb.addEventListener('click', toggle);
+  cb.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
   });
-  cb.addEventListener('change', () => onChange(cb.checked));
   return cb;
-}
-
-function makeButton(label, primary) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.textContent = label;
-  Object.assign(b.style, {
-    padding: '6px 14px',
-    fontSize: '13px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    outline: 'none',
-  });
-  if (primary) {
-    b.style.background = 'var(--foreground, #111827)';
-    b.style.color = 'var(--background, white)';
-    b.style.border = '1px solid transparent';
-  } else {
-    b.style.background = 'transparent';
-    b.style.color = 'var(--foreground, #111827)';
-    b.style.border = '1px solid var(--border, #d1d5db)';
-  }
-  return b;
 }
 
 function shortDate(dateKey) {
@@ -188,25 +270,6 @@ function shortDate(dateKey) {
 
 function weekdayLabel(dateKey) {
   return '週' + WEEKDAYS[dateKeyToLocalDate(dateKey).getDay()];
-}
-
-function thCell(text) {
-  const th = h('th', {
-    textAlign: 'left',
-    padding: '8px 10px',
-    borderBottom: '1px solid var(--border, #d1d5db)',
-    color: 'var(--foreground-muted, #6b7280)',
-    fontWeight: '500',
-    whiteSpace: 'nowrap',
-  }, text);
-  return th;
-}
-
-function tdCell(text) {
-  return h('td', {
-    padding: '8px 10px',
-    borderBottom: '1px solid var(--border-subtle, #e5e7eb)',
-  }, text || '');
 }
 
 /* ─────────────── Plugin ─────────────── */
@@ -223,6 +286,7 @@ class MedicationPlugin {
   }
 
   async onload() {
+    injectStyles();
     await this._loadData();
 
     this._statusItem = this.app.ui.addStatusBarItem({
@@ -232,18 +296,14 @@ class MedicationPlugin {
       position: 'navBar',
       order: 8,
       badge: () => this._remainingBadge(),
-      panel: {
-        width: 320,
-        maxHeight: 480,
-        mount: (el, close) => this._mountPanel(el, close),
-      },
+      panel: { width: 320, maxHeight: 480, mount: (elm, close) => this._mountPanel(elm, close) },
     });
     this._handles.push(this._statusItem);
 
     this._view = this.app.ui.registerView({
       id: 'medication-table',
       title: '用藥記錄',
-      mount: (el) => this._mountView(el),
+      mount: (elm) => this._mountView(elm),
     });
     this._handles.push(this._view);
 
@@ -267,6 +327,7 @@ class MedicationPlugin {
     this._renders.clear();
     this._view = null;
     this._statusItem = null;
+    removeStyles();
   }
 
   _makeId() {
@@ -283,16 +344,12 @@ class MedicationPlugin {
     return n > 0 ? n : undefined;
   }
 
-  // 把任意 medication 補成完整形狀，缺欄位給安全預設、補 id。
   _normalizeMedication(med) {
     if (!med || typeof med !== 'object') return null;
     const slots = {};
     for (const s of SLOTS) {
       const v = med.slots && med.slots[s];
-      slots[s] = {
-        enabled: !!(v && v.enabled),
-        dose: v && typeof v.dose === 'string' ? v.dose : '',
-      };
+      slots[s] = { enabled: !!(v && v.enabled), dose: v && typeof v.dose === 'string' ? v.dose : '' };
     }
     const days = Math.min(366, Math.max(1, Math.floor(Number(med.days)) || 1));
     return {
@@ -308,9 +365,7 @@ class MedicationPlugin {
   async _loadData() {
     const stored = await this.app.storage.load();
     const migrated = migrateData(stored, () => this._makeId());
-    const medications = migrated.medications
-      .map((m) => this._normalizeMedication(m))
-      .filter(Boolean);
+    const medications = migrated.medications.map((m) => this._normalizeMedication(m)).filter(Boolean);
     this._data = {
       medications,
       taken: migrated.taken && typeof migrated.taken === 'object' ? migrated.taken : {},
@@ -369,7 +424,7 @@ class MedicationPlugin {
   }
 
   /* 設定表單：新增（opts.medId 省略）或編輯既有藥（opts.medId）。存完呼叫 onDone。 */
-  _mountSetupForm(container, opts) {
+  _mountSetupForm(parent, opts) {
     const o = opts || {};
     const existing = o.medId ? this._data.medications.find((m) => m.id === o.medId) : null;
     const draft = {
@@ -389,86 +444,58 @@ class MedicationPlugin {
     };
     for (const s of SLOTS) if (!draft.slots[s]) draft.slots[s] = { enabled: false, dose: '' };
 
-    const form = h('div', { display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' });
-    form.appendChild(h('div', {
-      fontSize: '14px', fontWeight: '600', color: 'var(--foreground, #111827)',
-    }, existing ? '編輯藥物' : '新增藥物'));
+    const form = el('div', 'medp-form');
+    form.appendChild(el('h2', null, existing ? '編輯藥物' : '新增藥物'));
 
-    const makeField = (labelText, inputEl) => {
-      const wrap = h('label', {
-        display: 'flex', flexDirection: 'column', gap: '4px',
-        fontSize: '13px', color: 'var(--foreground-muted, #6b7280)',
-      });
-      wrap.appendChild(h('span', null, labelText));
-      inputEl.style.width = '100%';
-      wrap.appendChild(inputEl);
+    const field = (labelText, inputNode) => {
+      const wrap = el('label', 'medp-field');
+      wrap.appendChild(el('span', null, labelText));
+      wrap.appendChild(inputNode);
       return wrap;
     };
 
     const nameInput = makeInput('text', draft.name);
-    nameInput.placeholder = '例如 抗生素（選填）';
-    form.appendChild(makeField('藥名', nameInput));
+    nameInput.placeholder = '例如 中藥包（選填）';
+    form.appendChild(field('藥名', nameInput));
 
     const startInput = makeInput('date', draft.startDate);
-    form.appendChild(makeField('開始日', startInput));
+    form.appendChild(field('開始日', startInput));
 
     const daysInput = makeInput('number', String(draft.days));
     daysInput.min = '1';
-    form.appendChild(makeField('用藥期間（天）', daysInput));
+    form.appendChild(field('用藥期間（天）', daysInput));
 
-    form.appendChild(h('div', {
-      fontSize: '13px', color: 'var(--foreground-muted, #6b7280)', marginTop: '2px',
-    }, '時段與劑量'));
-
-    const slotsWrap = h('div', { display: 'flex', flexDirection: 'column', gap: '8px' });
+    form.appendChild(el('div', 'medp-sublabel', '時段與劑量'));
+    const slotsWrap = el('div', 'medp-slots');
     for (const s of SLOTS) {
-      const row = h('div', { display: 'flex', alignItems: 'center', gap: '8px' });
+      const row = el('div', 'medp-slot');
       const doseInput = makeInput('text', draft.slots[s].dose);
-      doseInput.placeholder = '劑量，例如 1 顆';
-      doseInput.style.flex = '1';
+      doseInput.placeholder = '劑量，例如 1 包';
       doseInput.disabled = !draft.slots[s].enabled;
-      doseInput.style.opacity = draft.slots[s].enabled ? '1' : '0.45';
+      if (doseInput.disabled) doseInput.classList.add('off');
       doseInput.addEventListener('input', () => { draft.slots[s].dose = doseInput.value; });
-
-      const cb = makeCheckbox(draft.slots[s].enabled, (checked) => {
-        draft.slots[s].enabled = checked;
-        doseInput.disabled = !checked;
-        doseInput.style.opacity = checked ? '1' : '0.45';
+      const cb = makeCheckbox(draft.slots[s].enabled, (v) => {
+        draft.slots[s].enabled = v;
+        doseInput.disabled = !v;
+        doseInput.classList.toggle('off', !v);
       });
-
       row.appendChild(cb);
-      row.appendChild(h('span', {
-        width: '32px', fontSize: '13px', color: 'var(--foreground, #111827)',
-      }, SLOT_LABELS[s]));
+      row.appendChild(el('span', 'lbl', SLOT_LABELS[s]));
       row.appendChild(doseInput);
       slotsWrap.appendChild(row);
     }
     form.appendChild(slotsWrap);
 
-    const noteInput = document.createElement('textarea');
+    const noteInput = el('textarea', 'medp-textarea');
     noteInput.value = draft.note;
     noteInput.placeholder = '注意事項，例如 飯後吃、避免與某藥同服';
     noteInput.rows = 3;
-    Object.assign(noteInput.style, {
-      width: '100%',
-      padding: '6px 8px',
-      fontSize: '13px',
-      lineHeight: '1.5',
-      borderRadius: '6px',
-      border: '1px solid var(--border, #d1d5db)',
-      background: 'var(--background, white)',
-      color: 'var(--foreground, #111827)',
-      outline: 'none',
-      boxSizing: 'border-box',
-      resize: 'vertical',
-      fontFamily: 'inherit',
-    });
     noteInput.addEventListener('input', () => { draft.note = noteInput.value; });
-    form.appendChild(makeField('附註（注意事項）', noteInput));
+    form.appendChild(field('附註（注意事項）', noteInput));
 
-    const btnRow = h('div', { display: 'flex', gap: '8px', marginTop: '4px' });
-    const saveBtn = makeButton('儲存', true);
-    saveBtn.style.flex = '1';
+    const btns = el('div', 'medp-form-btns');
+    const saveBtn = el('button', 'medp-save', '儲存');
+    saveBtn.type = 'button';
     saveBtn.addEventListener('click', () => {
       draft.days = Math.max(1, Math.floor(Number(daysInput.value)) || 1);
       draft.name = nameInput.value.trim();
@@ -482,118 +509,83 @@ class MedicationPlugin {
       this._addOrUpdateMedication(draft);
       if (typeof o.onDone === 'function') o.onDone();
     });
-    btnRow.appendChild(saveBtn);
-
+    btns.appendChild(saveBtn);
     if (typeof o.onCancel === 'function') {
-      const cancelBtn = makeButton('取消', false);
-      cancelBtn.style.flex = '0 0 auto';
+      const cancelBtn = el('button', 'medp-cancel', '取消');
+      cancelBtn.type = 'button';
       cancelBtn.addEventListener('click', () => o.onCancel());
-      btnRow.appendChild(cancelBtn);
+      btns.appendChild(cancelBtn);
     }
-    form.appendChild(btnRow);
-
-    container.appendChild(form);
-    return () => {};
+    form.appendChild(btns);
+    parent.appendChild(form);
   }
 
   /* nav bar 面板：列出所有藥、今天各自打勾 + 新增 + 管理入口。 */
   _mountPanel(container, _close) {
-    // null = 清單；{ medId } = 表單（medId 省略代表新增）
     let formState = this._data.medications.length === 0 ? { medId: undefined } : null;
 
     const render = () => {
-      container.replaceChildren();
-      Object.assign(container.style, {
-        display: 'flex', flexDirection: 'column', gap: '12px',
-        padding: '14px', boxSizing: 'border-box',
-      });
+      const root = el('div', 'medp panel');
 
       if (formState) {
-        this._mountSetupForm(container, {
+        this._mountSetupForm(root, {
           medId: formState.medId,
           onDone: () => { formState = null; render(); },
-          onCancel: this._data.medications.length > 0
-            ? () => { formState = null; render(); }
-            : undefined,
+          onCancel: this._data.medications.length > 0 ? () => { formState = null; render(); } : undefined,
         });
+        container.replaceChildren(root);
         return;
       }
 
       const today = this._todayKey();
       const meds = this._data.medications;
 
-      const header = h('div', {
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
-      });
-      header.appendChild(h('div', {
-        fontSize: '14px', fontWeight: '600', color: 'var(--foreground, #111827)',
-      }, '用藥記錄'));
-      const addBtn = makeButton('+ 新增', false);
-      addBtn.style.padding = '3px 10px';
+      const head = el('div', 'medp-head');
+      head.appendChild(el('div', 'medp-title', '用藥記錄'));
+      const addBtn = el('button', 'medp-add', '＋ 新增');
+      addBtn.type = 'button';
       addBtn.addEventListener('click', () => { formState = { medId: undefined }; render(); });
-      header.appendChild(addBtn);
-      container.appendChild(header);
+      head.appendChild(addBtn);
+      root.appendChild(head);
 
-      const list = h('div', { display: 'flex', flexDirection: 'column', gap: '14px' });
+      const grid = el('div', 'medp-grid');
       for (const med of meds) {
         const plan = todayPlan(med, this._data.taken[med.id] || {}, today);
-        const block = h('div', { display: 'flex', flexDirection: 'column', gap: '6px' });
+        const block = el('div', 'medp-card');
 
-        const titleRow = h('div', {
-          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px',
-        });
-        titleRow.appendChild(h('div', {
-          fontSize: '13px', fontWeight: '600', color: 'var(--foreground, #111827)',
-        }, med.name || '未命名'));
-        if (plan.status === 'active') {
-          titleRow.appendChild(h('div', {
-            fontSize: '13px', color: 'var(--foreground-muted, #6b7280)', whiteSpace: 'nowrap',
-          }, '第 ' + plan.dayIndex + ' / ' + plan.days + ' 天'));
-        }
-        block.appendChild(titleRow);
+        const chead = el('div', 'medp-chead');
+        const name = el('div', 'medp-name', med.name || '未命名');
+        if (plan.status === 'active') name.appendChild(el('span', 'medp-pill live', '第 ' + plan.dayIndex + ' / ' + plan.days + ' 天'));
+        else if (plan.status === 'before') name.appendChild(el('span', 'medp-pill soon', '未開始'));
+        else if (plan.status === 'after') name.appendChild(el('span', 'medp-pill done', '已結束'));
+        chead.appendChild(name);
+        block.appendChild(chead);
 
-        if (med.note) {
-          block.appendChild(h('div', {
-            fontSize: '13px', color: 'var(--foreground-muted, #6b7280)',
-            whiteSpace: 'pre-wrap', lineHeight: '1.4',
-          }, med.note));
-        }
+        if (med.note) block.appendChild(el('div', 'medp-note', med.note));
 
         if (plan.status === 'before') {
-          block.appendChild(h('div', {
-            fontSize: '13px', color: 'var(--foreground-muted, #6b7280)',
-          }, shortDate(med.startDate) + ' 開始'));
-        } else if (plan.status === 'after') {
-          block.appendChild(h('div', {
-            fontSize: '13px', color: 'var(--foreground-muted, #6b7280)',
-          }, '療程已結束'));
+          block.appendChild(el('div', 'medp-meta', shortDate(med.startDate) + ' 開始'));
         } else if (plan.status === 'active') {
           for (const sp of plan.slots) {
-            const row = h('label', {
-              display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
-            });
-            row.appendChild(makeCheckbox(sp.taken, (checked) => this._setTaken(med.id, today, sp.slot, checked)));
-            row.appendChild(h('span', {
-              width: '32px', fontSize: '14px', color: 'var(--foreground, #111827)',
-            }, sp.label));
-            row.appendChild(h('span', {
-              flex: '1', fontSize: '13px',
-              color: sp.taken ? 'var(--foreground-muted, #6b7280)' : 'var(--foreground, #111827)',
-              textDecoration: sp.taken ? 'line-through' : 'none',
-            }, sp.dose || ''));
+            const row = el('label', 'medp-day');
+            row.appendChild(makeCheckbox(sp.taken, (v) => this._setTaken(med.id, today, sp.slot, v)));
+            row.appendChild(el('span', 'lbl', sp.label));
+            row.appendChild(el('span', 'dose' + (sp.taken ? ' taken' : ''), sp.dose || ''));
             block.appendChild(row);
           }
         }
-        list.appendChild(block);
+        grid.appendChild(block);
       }
-      container.appendChild(list);
+      root.appendChild(grid);
 
-      const footer = h('div', { display: 'flex', gap: '8px', marginTop: '2px' });
-      const manageBtn = makeButton('管理 / 看全部', false);
-      manageBtn.style.flex = '1';
-      manageBtn.addEventListener('click', () => { if (this._view) this._view.open(); });
-      footer.appendChild(manageBtn);
-      container.appendChild(footer);
+      const footer = el('div', 'medp-footer');
+      const manage = el('button', 'medp-manage', '管理 / 看全部');
+      manage.type = 'button';
+      manage.addEventListener('click', () => { if (this._view) this._view.open(); });
+      footer.appendChild(manage);
+      root.appendChild(footer);
+
+      container.replaceChildren(root);
     };
 
     const unregister = this._registerRender(render);
@@ -601,60 +593,58 @@ class MedicationPlugin {
     return () => { unregister(); };
   }
 
-  /* 側邊欄開的內容區畫面：多種藥，每種一張卡（含完整療程表格）+ 新增 / 編輯 / 刪除。 */
+  /* 側邊欄開的內容區畫面：多種藥，響應式並排，每種一張卡含完整療程表格。 */
   _mountView(container) {
-    // null = 清單；{ medId } = 表單（medId 省略代表新增）
     let formState = null;
 
     const render = () => {
       const prevScroll = container.scrollTop;
-      container.replaceChildren();
-      Object.assign(container.style, {
-        height: '100%', overflow: 'auto', boxSizing: 'border-box',
-        padding: '24px', color: 'var(--foreground, #111827)',
-      });
+      const root = el('div', 'medp');
 
       if (formState) {
-        const wrap = h('div', { maxWidth: '420px', margin: '0 auto' });
-        container.appendChild(wrap);
-        this._mountSetupForm(wrap, {
+        this._mountSetupForm(root, {
           medId: formState.medId,
           onDone: () => { formState = null; render(); },
           onCancel: () => { formState = null; render(); },
         });
+        container.replaceChildren(root);
         return;
       }
 
       const today = this._todayKey();
       const meds = this._data.medications;
+      const remain = remainingTodayAll(meds, this._data.taken, today);
 
-      const head = h('div', {
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: '12px', marginBottom: '20px',
-      });
-      head.appendChild(h('div', { fontSize: '20px', fontWeight: '600' }, '用藥記錄'));
-      const addBtn = makeButton('+ 新增藥物', true);
+      const head = el('div', 'medp-head');
+      const title = el('div', 'medp-title', '用藥記錄');
+      title.appendChild(el('small', null,
+        meds.length === 0
+          ? '還沒有藥'
+          : meds.length + ' 種藥' + (remain > 0 ? ' · 今天還有 ' + remain + ' 劑要吃' : ' · 今天都吃完了')));
+      head.appendChild(title);
+      const addBtn = el('button', 'medp-add', '＋ 新增藥物');
+      addBtn.type = 'button';
       addBtn.addEventListener('click', () => { formState = { medId: undefined }; render(); });
       head.appendChild(addBtn);
-      container.appendChild(head);
+      root.appendChild(head);
 
       if (meds.length === 0) {
-        container.appendChild(h('div', {
-          textAlign: 'center', color: 'var(--foreground-muted, #6b7280)',
-          fontSize: '14px', padding: '60px 0',
-        }, '還沒有任何藥，點右上角「新增藥物」開始'));
+        root.appendChild(el('div', 'medp-empty', '還沒有任何藥，點右上角「新增藥物」開始'));
+        container.replaceChildren(root);
         container.scrollTop = prevScroll;
         return;
       }
 
-      const stack = h('div', { display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '760px' });
+      const grid = el('div', 'medp-grid');
       for (const med of meds) {
-        stack.appendChild(this._renderMedCard(med, today, (action, id) => {
+        grid.appendChild(this._renderMedCard(med, today, (action, id) => {
           if (action === 'edit') { formState = { medId: id }; render(); }
           else if (action === 'delete') { this._deleteMedication(id); }
         }));
       }
-      container.appendChild(stack);
+      root.appendChild(grid);
+
+      container.replaceChildren(root);
       container.scrollTop = prevScroll;
     };
 
@@ -663,131 +653,108 @@ class MedicationPlugin {
     return () => { unregister(); };
   }
 
-  /* 單一藥的卡片：標頭（名稱/狀態/編輯/刪除）+ 進度條 + 完整療程表格。 */
+  /* 單一藥的卡片：標頭（名稱/狀態/編輯/刪除）+ 附註 + 進度條 + 完整療程表格。 */
   _renderMedCard(med, today, onAction) {
-    const card = h('div', {
-      border: '1px solid var(--border-subtle, #e5e7eb)', borderRadius: '10px', padding: '16px',
-    });
+    const card = el('div', 'medp-card');
 
     const dates = courseDates(med);
     const slots = enabledSlots(med);
     const totals = countDoses(med, this._data.taken[med.id] || {});
     const status = courseStatus(med, today);
 
-    const head = h('div', {
-      display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-      gap: '12px', marginBottom: '12px',
-    });
-    const left = h('div', { display: 'flex', flexDirection: 'column', gap: '3px' });
-    left.appendChild(h('div', { fontSize: '15px', fontWeight: '600' }, med.name || '未命名'));
+    const chead = el('div', 'medp-chead');
+    const left = el('div');
+    const name = el('div', 'medp-name', med.name || '未命名');
+    if (status === 'active') name.appendChild(el('span', 'medp-pill live', '進行中'));
+    else if (status === 'before') name.appendChild(el('span', 'medp-pill soon', '未開始'));
+    else if (status === 'after') name.appendChild(el('span', 'medp-pill done', '已結束'));
+    left.appendChild(name);
     let sub = dates.length > 0
-      ? shortDate(med.startDate) + ' 至 ' + shortDate(dates[dates.length - 1]) + '，共 ' + med.days + ' 天'
+      ? shortDate(med.startDate) + ' 至 ' + shortDate(dates[dates.length - 1]) + ' · 共 ' + med.days + ' 天'
       : '';
     if (status === 'active') sub += ' · 第 ' + dayIndexOf(med, today) + ' 天';
-    else if (status === 'before') sub += ' · 尚未開始';
-    else if (status === 'after') sub += ' · 已結束';
-    left.appendChild(h('div', { fontSize: '13px', color: 'var(--foreground-muted, #6b7280)' }, sub));
-    head.appendChild(left);
+    left.appendChild(el('div', 'medp-meta', sub));
+    chead.appendChild(left);
 
-    const actions = h('div', { display: 'flex', gap: '6px', flex: '0 0 auto' });
-    const editBtn = makeButton('編輯', false);
-    editBtn.style.padding = '4px 10px';
+    const acts = el('div', 'medp-acts');
+    const editBtn = el('button', 'medp-btn', '編輯');
+    editBtn.type = 'button';
     editBtn.addEventListener('click', () => onAction('edit', med.id));
-    actions.appendChild(editBtn);
-
-    const delBtn = makeButton('刪除', false);
-    delBtn.style.padding = '4px 10px';
-    let confirming = false;
-    let confirmTimer = null;
-    const resetDel = () => {
-      confirming = false;
+    acts.appendChild(editBtn);
+    const delBtn = el('button', 'medp-btn', '刪除');
+    delBtn.type = 'button';
+    let armed = false;
+    let armTimer = null;
+    const disarm = () => {
+      armed = false;
       delBtn.textContent = '刪除';
-      delBtn.style.color = 'var(--foreground, #111827)';
-      delBtn.style.borderColor = 'var(--border, #d1d5db)';
-      if (confirmTimer) { clearTimeout(confirmTimer); confirmTimer = null; }
+      delBtn.classList.remove('armed');
+      if (armTimer) { clearTimeout(armTimer); armTimer = null; }
     };
     delBtn.addEventListener('click', () => {
-      if (!confirming) {
-        confirming = true;
+      if (!armed) {
+        armed = true;
         delBtn.textContent = '確定刪除？';
-        delBtn.style.color = 'var(--danger-text, #b91c1c)';
-        delBtn.style.borderColor = 'var(--danger-text, #b91c1c)';
-        confirmTimer = setTimeout(resetDel, 3000);
+        delBtn.classList.add('armed');
+        armTimer = setTimeout(disarm, 3000);
         return;
       }
       onAction('delete', med.id);
     });
-    actions.appendChild(delBtn);
-    head.appendChild(actions);
-    card.appendChild(head);
+    acts.appendChild(delBtn);
+    chead.appendChild(acts);
+    card.appendChild(chead);
 
-    if (med.note) {
-      card.appendChild(h('div', {
-        fontSize: '13px',
-        color: 'var(--foreground, #111827)',
-        background: 'color-mix(in srgb, var(--foreground) 4%, transparent)',
-        border: '1px solid var(--border-subtle, #e5e7eb)',
-        borderRadius: '8px',
-        padding: '8px 10px',
-        marginBottom: '12px',
-        whiteSpace: 'pre-wrap',
-        lineHeight: '1.5',
-      }, med.note));
-    }
+    if (med.note) card.appendChild(el('div', 'medp-note', med.note));
 
-    const progWrap = h('div', { marginBottom: '14px' });
-    progWrap.appendChild(h('div', {
-      fontSize: '13px', color: 'var(--foreground-muted, #6b7280)', marginBottom: '6px',
-    }, '進度 ' + totals.done + ' / ' + totals.total + ' 劑'));
-    const bar = h('div', {
-      height: '6px', borderRadius: '3px', background: 'var(--border, #e5e7eb)', overflow: 'hidden',
-    });
-    const pct = totals.total > 0 ? Math.round((totals.done / totals.total) * 100) : 0;
-    bar.appendChild(h('div', { height: '100%', width: pct + '%', background: 'var(--foreground, #111827)' }));
-    progWrap.appendChild(bar);
-    card.appendChild(progWrap);
+    const prog = el('div', 'medp-prog');
+    const progTop = el('div', 'medp-prog-top');
+    progTop.appendChild(el('span', null, '整體進度'));
+    const right = el('span');
+    right.appendChild(el('b', null, totals.done + ' / ' + totals.total));
+    right.appendChild(document.createTextNode(' 劑'));
+    progTop.appendChild(right);
+    prog.appendChild(progTop);
+    const bar = el('div', 'medp-bar');
+    const fill = el('i');
+    fill.style.width = (totals.total > 0 ? Math.round((totals.done / totals.total) * 100) : 0) + '%';
+    bar.appendChild(fill);
+    prog.appendChild(bar);
+    card.appendChild(prog);
 
     if (slots.length === 0) {
-      card.appendChild(h('div', {
-        fontSize: '13px', color: 'var(--foreground-muted, #6b7280)',
-      }, '沒有啟用任何時段'));
+      card.appendChild(el('div', 'medp-meta', '沒有啟用任何時段'));
       return card;
     }
 
-    const tableWrap = h('div', { overflowX: 'auto' });
-    const table = h('table', { borderCollapse: 'collapse', width: '100%', fontSize: '13px' });
-    const thead = document.createElement('thead');
-    const htr = document.createElement('tr');
-    htr.appendChild(thCell('日期'));
+    const table = el('table', 'medp-table');
+    const thead = el('thead');
+    const htr = el('tr');
+    htr.appendChild(el('th', 'd', '日期'));
     for (const s of slots) {
-      const dose = med.slots[s].dose ? ' · ' + med.slots[s].dose : '';
-      htr.appendChild(thCell(SLOT_LABELS[s] + dose));
+      const th = el('th', null, SLOT_LABELS[s]);
+      if (med.slots[s].dose) th.appendChild(el('span', 'dose', med.slots[s].dose));
+      htr.appendChild(th);
     }
     thead.appendChild(htr);
     table.appendChild(thead);
 
-    const tbody = document.createElement('tbody');
+    const tbody = el('tbody');
     const takenForMed = this._data.taken[med.id] || {};
     for (const dk of dates) {
-      const tr = document.createElement('tr');
-      if (dk === today) tr.style.background = 'color-mix(in srgb, var(--foreground) 7%, transparent)';
-      const dcell = tdCell(shortDate(dk) + ' ' + weekdayLabel(dk));
-      dcell.style.whiteSpace = 'nowrap';
-      dcell.style.color = dk === today ? 'var(--foreground, #111827)' : 'var(--foreground-muted, #6b7280)';
-      if (dk === today) dcell.style.fontWeight = '600';
-      tr.appendChild(dcell);
+      const tr = el('tr');
+      if (dk === today) tr.className = 'today';
+      tr.appendChild(el('td', 'd', shortDate(dk) + ' ' + weekdayLabel(dk)));
       for (const s of slots) {
-        const cell = tdCell('');
-        cell.style.textAlign = 'center';
+        const td = el('td');
         const rec = takenForMed[dk] || {};
-        cell.appendChild(makeCheckbox(!!rec[s], (checked) => this._setTaken(med.id, dk, s, checked)));
-        tr.appendChild(cell);
+        td.appendChild(makeCheckbox(!!rec[s], (v) => this._setTaken(med.id, dk, s, v)));
+        tr.appendChild(td);
       }
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
-    tableWrap.appendChild(table);
-    card.appendChild(tableWrap);
+    card.appendChild(table);
 
     return card;
   }
