@@ -298,6 +298,7 @@ class MedicationPlugin {
     return {
       id: typeof med.id === 'string' && med.id ? med.id : this._makeId(),
       name: typeof med.name === 'string' ? med.name : '',
+      note: typeof med.note === 'string' ? med.note : '',
       startDate: typeof med.startDate === 'string' ? med.startDate : this._todayKey(),
       days,
       slots,
@@ -374,6 +375,7 @@ class MedicationPlugin {
     const draft = {
       id: existing ? existing.id : undefined,
       name: existing ? existing.name : '',
+      note: existing ? (existing.note || '') : '',
       startDate: existing ? existing.startDate : this._todayKey(),
       days: existing ? existing.days : 7,
       slots: existing && existing.slots
@@ -443,12 +445,34 @@ class MedicationPlugin {
     }
     form.appendChild(slotsWrap);
 
+    const noteInput = document.createElement('textarea');
+    noteInput.value = draft.note;
+    noteInput.placeholder = '注意事項，例如 飯後吃、避免與某藥同服';
+    noteInput.rows = 3;
+    Object.assign(noteInput.style, {
+      width: '100%',
+      padding: '6px 8px',
+      fontSize: '13px',
+      lineHeight: '1.5',
+      borderRadius: '6px',
+      border: '1px solid var(--border, #d1d5db)',
+      background: 'var(--background, white)',
+      color: 'var(--foreground, #111827)',
+      outline: 'none',
+      boxSizing: 'border-box',
+      resize: 'vertical',
+      fontFamily: 'inherit',
+    });
+    noteInput.addEventListener('input', () => { draft.note = noteInput.value; });
+    form.appendChild(makeField('附註（注意事項）', noteInput));
+
     const btnRow = h('div', { display: 'flex', gap: '8px', marginTop: '4px' });
     const saveBtn = makeButton('儲存', true);
     saveBtn.style.flex = '1';
     saveBtn.addEventListener('click', () => {
       draft.days = Math.max(1, Math.floor(Number(daysInput.value)) || 1);
       draft.name = nameInput.value.trim();
+      draft.note = noteInput.value;
       draft.startDate = startInput.value || this._todayKey();
       if (enabledSlots(draft).length === 0) {
         this.app.ui.showNotice('至少選一個用藥時段', { type: 'warning' });
@@ -527,6 +551,13 @@ class MedicationPlugin {
           }, '第 ' + plan.dayIndex + ' / ' + plan.days + ' 天'));
         }
         block.appendChild(titleRow);
+
+        if (med.note) {
+          block.appendChild(h('div', {
+            fontSize: '13px', color: 'var(--foreground-muted, #6b7280)',
+            whiteSpace: 'pre-wrap', lineHeight: '1.4',
+          }, med.note));
+        }
 
         if (plan.status === 'before') {
           block.appendChild(h('div', {
@@ -689,6 +720,20 @@ class MedicationPlugin {
     actions.appendChild(delBtn);
     head.appendChild(actions);
     card.appendChild(head);
+
+    if (med.note) {
+      card.appendChild(h('div', {
+        fontSize: '13px',
+        color: 'var(--foreground, #111827)',
+        background: 'color-mix(in srgb, var(--foreground) 4%, transparent)',
+        border: '1px solid var(--border-subtle, #e5e7eb)',
+        borderRadius: '8px',
+        padding: '8px 10px',
+        marginBottom: '12px',
+        whiteSpace: 'pre-wrap',
+        lineHeight: '1.5',
+      }, med.note));
+    }
 
     const progWrap = h('div', { marginBottom: '14px' });
     progWrap.appendChild(h('div', {
