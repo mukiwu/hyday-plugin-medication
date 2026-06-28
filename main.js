@@ -116,6 +116,83 @@ function migrateData(stored, makeId) {
   return { medications: [], taken: {} };
 }
 
+/* ─────────────── i18n（en / zh-TW / zh-CN） ─────────────── */
+
+function resolveLocale(locale) {
+  const l = String(locale || '').toLowerCase();
+  if (l.startsWith('en')) return 'en';
+  if (l === 'zh-cn' || l.startsWith('zh-hans') || l === 'zh-sg') return 'zh-CN';
+  return 'zh-TW';
+}
+
+function enWeekday(dk) {
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dateKeyToLocalDate(dk).getDay()];
+}
+
+const STRINGS = {
+  'zh-TW': {
+    title: '用藥記錄', addLong: '＋ 新增藥物', addShort: '＋ 新增', manage: '管理 / 看全部',
+    formAdd: '新增藥物', formEdit: '編輯藥物', fName: '藥名', phName: '例如 中藥包（選填）',
+    fStart: '開始日', fDays: '用藥期間（天）', slotsAndDose: '時段與劑量',
+    phDose: '劑量，例如 1 包', fNote: '附註（注意事項）', phNote: '注意事項，例如 飯後吃、避免與某藥同服',
+    save: '儲存', cancel: '取消', needSlot: '至少選一個用藥時段',
+    stActive: '進行中', stBefore: '未開始', stAfter: '已結束',
+    overallProgress: '整體進度', doseUnit: ' 劑', dateCol: '日期',
+    edit: '編輯', del: '刪除', delConfirm: '確定刪除？', noSlots: '沒有啟用任何時段', unnamed: '未命名',
+    emptyView: '還沒有任何藥，點右上角「新增藥物」開始',
+    notStartedMeta: ' · 尚未開始', endedMeta: ' · 已結束',
+    slots: { morning: '早', noon: '中', evening: '晚', bedtime: '睡前' },
+    summary: (count, remain) => count === 0 ? '還沒有藥'
+      : count + ' 種藥' + (remain > 0 ? ' · 今天還有 ' + remain + ' 劑要吃' : ' · 今天都吃完了'),
+    dayBadge: (i, n) => '第 ' + i + ' / ' + n + ' 天',
+    dayMeta: (i) => ' · 第 ' + i + ' 天',
+    rangeMeta: (s, e, d) => s + ' 至 ' + e + ' · 共 ' + d + ' 天',
+    startMeta: (s) => s + ' 開始',
+    dateLabel: (dk) => shortDate(dk) + ' 週' + WEEKDAYS[dateKeyToLocalDate(dk).getDay()],
+  },
+  en: {
+    title: 'Medication', addLong: '+ Add medication', addShort: '+ Add', manage: 'Manage / view all',
+    formAdd: 'Add medication', formEdit: 'Edit medication', fName: 'Name', phName: 'e.g. Antibiotics (optional)',
+    fStart: 'Start date', fDays: 'Duration (days)', slotsAndDose: 'Times & doses',
+    phDose: 'Dose, e.g. 1 pill', fNote: 'Note', phNote: 'e.g. take after meals, avoid with X',
+    save: 'Save', cancel: 'Cancel', needSlot: 'Pick at least one time slot',
+    stActive: 'Active', stBefore: 'Upcoming', stAfter: 'Finished',
+    overallProgress: 'Progress', doseUnit: ' doses', dateCol: 'Date',
+    edit: 'Edit', del: 'Delete', delConfirm: 'Confirm delete?', noSlots: 'No time slots enabled', unnamed: 'Unnamed',
+    emptyView: 'No medications yet. Tap "Add medication" to start.',
+    notStartedMeta: ' · Upcoming', endedMeta: ' · Finished',
+    slots: { morning: 'Morn', noon: 'Noon', evening: 'Eve', bedtime: 'Bed' },
+    summary: (count, remain) => count === 0 ? 'No medications yet'
+      : count + (count > 1 ? ' medications' : ' medication')
+        + (remain > 0 ? ' · ' + remain + (remain > 1 ? ' doses' : ' dose') + ' left today' : ' · all done today'),
+    dayBadge: (i, n) => 'Day ' + i + ' / ' + n,
+    dayMeta: (i) => ' · Day ' + i,
+    rangeMeta: (s, e, d) => s + '–' + e + ' · ' + d + ' days',
+    startMeta: (s) => 'Starts ' + s,
+    dateLabel: (dk) => shortDate(dk) + ' ' + enWeekday(dk),
+  },
+  'zh-CN': {
+    title: '用药记录', addLong: '＋ 新增药物', addShort: '＋ 新增', manage: '管理 / 看全部',
+    formAdd: '新增药物', formEdit: '编辑药物', fName: '药名', phName: '例如 中药包（选填）',
+    fStart: '开始日', fDays: '用药期间（天）', slotsAndDose: '时段与剂量',
+    phDose: '剂量，例如 1 包', fNote: '附注（注意事项）', phNote: '注意事项，例如 饭后吃、避免与某药同服',
+    save: '保存', cancel: '取消', needSlot: '至少选一个用药时段',
+    stActive: '进行中', stBefore: '未开始', stAfter: '已结束',
+    overallProgress: '整体进度', doseUnit: ' 剂', dateCol: '日期',
+    edit: '编辑', del: '删除', delConfirm: '确定删除？', noSlots: '没有启用任何时段', unnamed: '未命名',
+    emptyView: '还没有任何药，点右上角「新增药物」开始',
+    notStartedMeta: ' · 尚未开始', endedMeta: ' · 已结束',
+    slots: { morning: '早', noon: '中', evening: '晚', bedtime: '睡前' },
+    summary: (count, remain) => count === 0 ? '还没有药'
+      : count + ' 种药' + (remain > 0 ? ' · 今天还有 ' + remain + ' 剂要吃' : ' · 今天都吃完了'),
+    dayBadge: (i, n) => '第 ' + i + ' / ' + n + ' 天',
+    dayMeta: (i) => ' · 第 ' + i + ' 天',
+    rangeMeta: (s, e, d) => s + ' 至 ' + e + ' · 共 ' + d + ' 天',
+    startMeta: (s) => s + ' 开始',
+    dateLabel: (dk) => shortDate(dk) + ' 周' + WEEKDAYS[dateKeyToLocalDate(dk).getDay()],
+  },
+};
+
 /* ─────────────── 樣式（注入一次，scoped 在 .medp 底下，全用 Hyday theme token） ─────────────── */
 
 const STYLE_ID = 'medp-styles';
@@ -208,7 +285,7 @@ const MEDP_CSS = `
 .medp-textarea { resize: vertical; line-height: 1.5; min-height: 60px; }
 .medp-slots { display: flex; flex-direction: column; gap: 8px; }
 .medp-slot { display: flex; align-items: center; gap: 9px; }
-.medp-slot .lbl { width: 30px; font-size: 13px; }
+.medp-slot .lbl { width: 44px; font-size: 13px; }
 .medp-slot .medp-input { flex: 1; }
 .medp-form-btns { display: flex; gap: 8px; margin-top: 4px; }
 .medp-save { flex: 1; font-size: 13px; font-weight: 600; color: #fff; background: var(--mp-accent); border: none; padding: 9px; border-radius: 9px; cursor: pointer; outline: none; }
@@ -268,10 +345,6 @@ function shortDate(dateKey) {
   return Number(p[1]) + '/' + Number(p[2]);
 }
 
-function weekdayLabel(dateKey) {
-  return '週' + WEEKDAYS[dateKeyToLocalDate(dateKey).getDay()];
-}
-
 /* ─────────────── Plugin ─────────────── */
 
 class MedicationPlugin {
@@ -283,15 +356,22 @@ class MedicationPlugin {
     this._renders = new Set();
     this._view = null;
     this._statusItem = null;
+    this._locale = 'zh-TW';
+  }
+
+  _L() {
+    return STRINGS[resolveLocale(this._locale)] || STRINGS['zh-TW'];
   }
 
   async onload() {
     injectStyles();
+    if (this.app.i18n && this.app.i18n.locale) this._locale = this.app.i18n.locale;
     await this._loadData();
+    const L = this._L();
 
     this._statusItem = this.app.ui.addStatusBarItem({
       id: 'medication',
-      label: '用藥記錄',
+      label: L.title,
       icon: PILL_ICON,
       position: 'navBar',
       order: 8,
@@ -302,9 +382,7 @@ class MedicationPlugin {
 
     this._view = this.app.ui.registerView({
       id: 'medication-table',
-      title: '用藥記錄',
-      // 'content' 讓畫面只佔內容區、保留 app 側邊欄（需要 host 支援此選項；
-      // 舊版 host 會忽略此欄位、退回全螢幕，不會壞）。
+      title: L.title,
       placement: 'content',
       mount: (elm) => this._mountView(elm),
     });
@@ -313,13 +391,20 @@ class MedicationPlugin {
     this._handles.push(
       this.app.ui.addSidebarItem({
         id: 'medication',
-        label: '用藥記錄',
+        label: L.title,
         icon: PILL_ICON,
         order: 30,
         onClick: () => { if (this._view) this._view.open(); },
         badge: () => this._remainingBadge(),
       }),
     );
+
+    if (this.app.i18n && typeof this.app.i18n.onLocaleChange === 'function') {
+      this._handles.push(this.app.i18n.onLocaleChange((loc) => {
+        this._locale = loc;
+        this._renderAll();
+      }));
+    }
   }
 
   async onunload() {
@@ -429,6 +514,7 @@ class MedicationPlugin {
   /* 設定表單：新增（opts.medId 省略）或編輯既有藥（opts.medId）。存完呼叫 onDone。 */
   _mountSetupForm(parent, opts) {
     const o = opts || {};
+    const L = this._L();
     const existing = o.medId ? this._data.medications.find((m) => m.id === o.medId) : null;
     const draft = {
       id: existing ? existing.id : undefined,
@@ -448,7 +534,7 @@ class MedicationPlugin {
     for (const s of SLOTS) if (!draft.slots[s]) draft.slots[s] = { enabled: false, dose: '' };
 
     const form = el('div', 'medp-form');
-    form.appendChild(el('h2', null, existing ? '編輯藥物' : '新增藥物'));
+    form.appendChild(el('h2', null, existing ? L.formEdit : L.formAdd));
 
     const field = (labelText, inputNode) => {
       const wrap = el('label', 'medp-field');
@@ -458,22 +544,22 @@ class MedicationPlugin {
     };
 
     const nameInput = makeInput('text', draft.name);
-    nameInput.placeholder = '例如 中藥包（選填）';
-    form.appendChild(field('藥名', nameInput));
+    nameInput.placeholder = L.phName;
+    form.appendChild(field(L.fName, nameInput));
 
     const startInput = makeInput('date', draft.startDate);
-    form.appendChild(field('開始日', startInput));
+    form.appendChild(field(L.fStart, startInput));
 
     const daysInput = makeInput('number', String(draft.days));
     daysInput.min = '1';
-    form.appendChild(field('用藥期間（天）', daysInput));
+    form.appendChild(field(L.fDays, daysInput));
 
-    form.appendChild(el('div', 'medp-sublabel', '時段與劑量'));
+    form.appendChild(el('div', 'medp-sublabel', L.slotsAndDose));
     const slotsWrap = el('div', 'medp-slots');
     for (const s of SLOTS) {
       const row = el('div', 'medp-slot');
       const doseInput = makeInput('text', draft.slots[s].dose);
-      doseInput.placeholder = '劑量，例如 1 包';
+      doseInput.placeholder = L.phDose;
       doseInput.disabled = !draft.slots[s].enabled;
       if (doseInput.disabled) doseInput.classList.add('off');
       doseInput.addEventListener('input', () => { draft.slots[s].dose = doseInput.value; });
@@ -483,7 +569,7 @@ class MedicationPlugin {
         doseInput.classList.toggle('off', !v);
       });
       row.appendChild(cb);
-      row.appendChild(el('span', 'lbl', SLOT_LABELS[s]));
+      row.appendChild(el('span', 'lbl', L.slots[s]));
       row.appendChild(doseInput);
       slotsWrap.appendChild(row);
     }
@@ -491,13 +577,13 @@ class MedicationPlugin {
 
     const noteInput = el('textarea', 'medp-textarea');
     noteInput.value = draft.note;
-    noteInput.placeholder = '注意事項，例如 飯後吃、避免與某藥同服';
+    noteInput.placeholder = L.phNote;
     noteInput.rows = 3;
     noteInput.addEventListener('input', () => { draft.note = noteInput.value; });
-    form.appendChild(field('附註（注意事項）', noteInput));
+    form.appendChild(field(L.fNote, noteInput));
 
     const btns = el('div', 'medp-form-btns');
-    const saveBtn = el('button', 'medp-save', '儲存');
+    const saveBtn = el('button', 'medp-save', L.save);
     saveBtn.type = 'button';
     saveBtn.addEventListener('click', () => {
       draft.days = Math.max(1, Math.floor(Number(daysInput.value)) || 1);
@@ -505,7 +591,7 @@ class MedicationPlugin {
       draft.note = noteInput.value;
       draft.startDate = startInput.value || this._todayKey();
       if (enabledSlots(draft).length === 0) {
-        this.app.ui.showNotice('至少選一個用藥時段', { type: 'warning' });
+        this.app.ui.showNotice(L.needSlot, { type: 'warning' });
         return;
       }
       for (const s of SLOTS) if (!draft.slots[s].enabled) draft.slots[s].dose = '';
@@ -514,7 +600,7 @@ class MedicationPlugin {
     });
     btns.appendChild(saveBtn);
     if (typeof o.onCancel === 'function') {
-      const cancelBtn = el('button', 'medp-cancel', '取消');
+      const cancelBtn = el('button', 'medp-cancel', L.cancel);
       cancelBtn.type = 'button';
       cancelBtn.addEventListener('click', () => o.onCancel());
       btns.appendChild(cancelBtn);
@@ -528,6 +614,7 @@ class MedicationPlugin {
     let formState = this._data.medications.length === 0 ? { medId: undefined } : null;
 
     const render = () => {
+      const L = this._L();
       const root = el('div', 'medp panel');
 
       if (formState) {
@@ -544,8 +631,8 @@ class MedicationPlugin {
       const meds = this._data.medications;
 
       const head = el('div', 'medp-head');
-      head.appendChild(el('div', 'medp-title', '用藥記錄'));
-      const addBtn = el('button', 'medp-add', '＋ 新增');
+      head.appendChild(el('div', 'medp-title', L.title));
+      const addBtn = el('button', 'medp-add', L.addShort);
       addBtn.type = 'button';
       addBtn.addEventListener('click', () => { formState = { medId: undefined }; render(); });
       head.appendChild(addBtn);
@@ -557,22 +644,22 @@ class MedicationPlugin {
         const block = el('div', 'medp-card');
 
         const chead = el('div', 'medp-chead');
-        const name = el('div', 'medp-name', med.name || '未命名');
-        if (plan.status === 'active') name.appendChild(el('span', 'medp-pill live', '第 ' + plan.dayIndex + ' / ' + plan.days + ' 天'));
-        else if (plan.status === 'before') name.appendChild(el('span', 'medp-pill soon', '未開始'));
-        else if (plan.status === 'after') name.appendChild(el('span', 'medp-pill done', '已結束'));
+        const name = el('div', 'medp-name', med.name || L.unnamed);
+        if (plan.status === 'active') name.appendChild(el('span', 'medp-pill live', L.dayBadge(plan.dayIndex, plan.days)));
+        else if (plan.status === 'before') name.appendChild(el('span', 'medp-pill soon', L.stBefore));
+        else if (plan.status === 'after') name.appendChild(el('span', 'medp-pill done', L.stAfter));
         chead.appendChild(name);
         block.appendChild(chead);
 
         if (med.note) block.appendChild(el('div', 'medp-note', med.note));
 
         if (plan.status === 'before') {
-          block.appendChild(el('div', 'medp-meta', shortDate(med.startDate) + ' 開始'));
+          block.appendChild(el('div', 'medp-meta', L.startMeta(shortDate(med.startDate))));
         } else if (plan.status === 'active') {
           for (const sp of plan.slots) {
             const row = el('label', 'medp-day');
             row.appendChild(makeCheckbox(sp.taken, (v) => this._setTaken(med.id, today, sp.slot, v)));
-            row.appendChild(el('span', 'lbl', sp.label));
+            row.appendChild(el('span', 'lbl', L.slots[sp.slot]));
             row.appendChild(el('span', 'dose' + (sp.taken ? ' taken' : ''), sp.dose || ''));
             block.appendChild(row);
           }
@@ -582,7 +669,7 @@ class MedicationPlugin {
       root.appendChild(grid);
 
       const footer = el('div', 'medp-footer');
-      const manage = el('button', 'medp-manage', '管理 / 看全部');
+      const manage = el('button', 'medp-manage', L.manage);
       manage.type = 'button';
       manage.addEventListener('click', () => { if (this._view) this._view.open(); });
       footer.appendChild(manage);
@@ -601,6 +688,7 @@ class MedicationPlugin {
     let formState = null;
 
     const render = () => {
+      const L = this._L();
       const prevScroll = container.scrollTop;
       const root = el('div', 'medp');
 
@@ -619,20 +707,17 @@ class MedicationPlugin {
       const remain = remainingTodayAll(meds, this._data.taken, today);
 
       const head = el('div', 'medp-head');
-      const title = el('div', 'medp-title', '用藥記錄');
-      title.appendChild(el('small', null,
-        meds.length === 0
-          ? '還沒有藥'
-          : meds.length + ' 種藥' + (remain > 0 ? ' · 今天還有 ' + remain + ' 劑要吃' : ' · 今天都吃完了')));
+      const title = el('div', 'medp-title', L.title);
+      title.appendChild(el('small', null, L.summary(meds.length, remain)));
       head.appendChild(title);
-      const addBtn = el('button', 'medp-add', '＋ 新增藥物');
+      const addBtn = el('button', 'medp-add', L.addLong);
       addBtn.type = 'button';
       addBtn.addEventListener('click', () => { formState = { medId: undefined }; render(); });
       head.appendChild(addBtn);
       root.appendChild(head);
 
       if (meds.length === 0) {
-        root.appendChild(el('div', 'medp-empty', '還沒有任何藥，點右上角「新增藥物」開始'));
+        root.appendChild(el('div', 'medp-empty', L.emptyView));
         container.replaceChildren(root);
         container.scrollTop = prevScroll;
         return;
@@ -640,7 +725,7 @@ class MedicationPlugin {
 
       const grid = el('div', 'medp-grid');
       for (const med of meds) {
-        grid.appendChild(this._renderMedCard(med, today, (action, id) => {
+        grid.appendChild(this._renderMedCard(med, today, L, (action, id) => {
           if (action === 'edit') { formState = { medId: id }; render(); }
           else if (action === 'delete') { this._deleteMedication(id); }
         }));
@@ -657,7 +742,7 @@ class MedicationPlugin {
   }
 
   /* 單一藥的卡片：標頭（名稱/狀態/編輯/刪除）+ 附註 + 進度條 + 完整療程表格。 */
-  _renderMedCard(med, today, onAction) {
+  _renderMedCard(med, today, L, onAction) {
     const card = el('div', 'medp-card');
 
     const dates = courseDates(med);
@@ -667,37 +752,39 @@ class MedicationPlugin {
 
     const chead = el('div', 'medp-chead');
     const left = el('div');
-    const name = el('div', 'medp-name', med.name || '未命名');
-    if (status === 'active') name.appendChild(el('span', 'medp-pill live', '進行中'));
-    else if (status === 'before') name.appendChild(el('span', 'medp-pill soon', '未開始'));
-    else if (status === 'after') name.appendChild(el('span', 'medp-pill done', '已結束'));
+    const name = el('div', 'medp-name', med.name || L.unnamed);
+    if (status === 'active') name.appendChild(el('span', 'medp-pill live', L.stActive));
+    else if (status === 'before') name.appendChild(el('span', 'medp-pill soon', L.stBefore));
+    else if (status === 'after') name.appendChild(el('span', 'medp-pill done', L.stAfter));
     left.appendChild(name);
     let sub = dates.length > 0
-      ? shortDate(med.startDate) + ' 至 ' + shortDate(dates[dates.length - 1]) + ' · 共 ' + med.days + ' 天'
+      ? L.rangeMeta(shortDate(med.startDate), shortDate(dates[dates.length - 1]), med.days)
       : '';
-    if (status === 'active') sub += ' · 第 ' + dayIndexOf(med, today) + ' 天';
+    if (status === 'active') sub += L.dayMeta(dayIndexOf(med, today));
+    else if (status === 'before') sub += L.notStartedMeta;
+    else if (status === 'after') sub += L.endedMeta;
     left.appendChild(el('div', 'medp-meta', sub));
     chead.appendChild(left);
 
     const acts = el('div', 'medp-acts');
-    const editBtn = el('button', 'medp-btn', '編輯');
+    const editBtn = el('button', 'medp-btn', L.edit);
     editBtn.type = 'button';
     editBtn.addEventListener('click', () => onAction('edit', med.id));
     acts.appendChild(editBtn);
-    const delBtn = el('button', 'medp-btn', '刪除');
+    const delBtn = el('button', 'medp-btn', L.del);
     delBtn.type = 'button';
     let armed = false;
     let armTimer = null;
     const disarm = () => {
       armed = false;
-      delBtn.textContent = '刪除';
+      delBtn.textContent = L.del;
       delBtn.classList.remove('armed');
       if (armTimer) { clearTimeout(armTimer); armTimer = null; }
     };
     delBtn.addEventListener('click', () => {
       if (!armed) {
         armed = true;
-        delBtn.textContent = '確定刪除？';
+        delBtn.textContent = L.delConfirm;
         delBtn.classList.add('armed');
         armTimer = setTimeout(disarm, 3000);
         return;
@@ -712,10 +799,10 @@ class MedicationPlugin {
 
     const prog = el('div', 'medp-prog');
     const progTop = el('div', 'medp-prog-top');
-    progTop.appendChild(el('span', null, '整體進度'));
+    progTop.appendChild(el('span', null, L.overallProgress));
     const right = el('span');
     right.appendChild(el('b', null, totals.done + ' / ' + totals.total));
-    right.appendChild(document.createTextNode(' 劑'));
+    right.appendChild(document.createTextNode(L.doseUnit));
     progTop.appendChild(right);
     prog.appendChild(progTop);
     const bar = el('div', 'medp-bar');
@@ -726,16 +813,16 @@ class MedicationPlugin {
     card.appendChild(prog);
 
     if (slots.length === 0) {
-      card.appendChild(el('div', 'medp-meta', '沒有啟用任何時段'));
+      card.appendChild(el('div', 'medp-meta', L.noSlots));
       return card;
     }
 
     const table = el('table', 'medp-table');
     const thead = el('thead');
     const htr = el('tr');
-    htr.appendChild(el('th', 'd', '日期'));
+    htr.appendChild(el('th', 'd', L.dateCol));
     for (const s of slots) {
-      const th = el('th', null, SLOT_LABELS[s]);
+      const th = el('th', null, L.slots[s]);
       if (med.slots[s].dose) th.appendChild(el('span', 'dose', med.slots[s].dose));
       htr.appendChild(th);
     }
@@ -747,7 +834,7 @@ class MedicationPlugin {
     for (const dk of dates) {
       const tr = el('tr');
       if (dk === today) tr.className = 'today';
-      tr.appendChild(el('td', 'd', shortDate(dk) + ' ' + weekdayLabel(dk)));
+      tr.appendChild(el('td', 'd', L.dateLabel(dk)));
       for (const s of slots) {
         const td = el('td');
         const rec = takenForMed[dk] || {};
@@ -767,5 +854,5 @@ module.exports = MedicationPlugin;
 Object.assign(module.exports, {
   SLOTS, SLOT_LABELS, toLocalDateKey, addDays, enabledSlots, courseDates,
   dayIndexOf, countDoses, courseStatus, todayPlan, remainingToday,
-  remainingTodayAll, migrateData,
+  remainingTodayAll, migrateData, resolveLocale, STRINGS,
 });
